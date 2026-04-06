@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>உங்கள் ஆசிரியர் · v9 Premium</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ஆசிரியர்">
+<link rel="icon" href="20260315_085358.png" type="image/png">
+<link rel="apple-touch-icon" href="20260315_085358.png">
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- 🌟 MATHJAX FOR MATH FORMULAS 🌟 -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div id="auto-banner" class="hidden" style="display:none!important"><div id="auto-name"></div></div>
+  <div class="login-card">
+    <div class="login-hero">
+      <img src="20260315_085358.png" class="hero-logo" onerror="this.outerHTML='<div style=\'font-size:2.5rem;margin:0 auto 14px;text-align:center;position:relative;z-index:1;\'>🎓</div>'">
+      <div class="hero-title">உங்கள் ஆசிரியர்</div>
+      <div class="hero-sub">Teacher &amp; Admin Portal</div>
+    </div>
+    <div class="login-body">
+      <div class="fl">
+        <div>
+          <label class="inp-lbl">USERNAME</label>
+          <input class="inp" id="l-user" type="text" placeholder="பயனர்பெயர்" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('l-pwd').focus()">
+        </div>
+        <div>
+          <label class="inp-lbl">PASSWORD</label>
+          <input class="inp" id="l-pwd" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn-login" onclick="doLogin()">உள்ளே நுழைய →</button>
+        <div class="err-strip" id="login-err">தவறான பயனர்பெயர் / கடவுச்சொல்</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="statusbar">
+    <div class="sb-left">
+      <img src="20260315_085358.png" class="sb-logo" onerror="this.style.display='none'">
+      <span class="sb-title">ஆசிரியர்</span>
+    </div>
+    <div class="sb-right">
+      <div class="sb-user" id="topbar-user">-</div>
+      <div class="ib" onclick="openSheet('settings-sheet')">⚙</div>
+      <div class="ib" onclick="doLogout()" style="font-size:14px;">←</div>
+    </div>
+  </div>
+
+  <div class="deck-viewport">
+    <!-- DASHBOARD -->
+    <div class="deck-panel on" id="panel-dash">
+      <div class="dash-grid" style="padding-bottom:16px;">
+        <div class="stack-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="20260315_085358.png" style="width:36px;height:36px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(88,86,214,0.2);" onerror="this.style.display='none'">
+            <div><div class="stack-title">Dashboard</div><div class="stack-sub">Overview</div></div>
+          </div>
+        </div>
+        <div class="dash-stat-row">
+          <div class="stat-tile tile-ind"><div class="stat-icon">👨‍🎓</div><div class="stat-num" id="dash-students">0</div><div class="stat-lbl">மாணவர்</div></div>
+          <div class="stat-tile tile-grn"><div class="stat-icon">❓</div><div class="stat-num" id="dash-questions">0</div><div class="stat-lbl">கேள்விகள்</div></div>
+          <div class="stat-tile tile-org"><div class="stat-icon">📝</div><div class="stat-num" id="dash-attempts">0</div><div class="stat-lbl">முயற்சி</div></div>
+        </div>
+        <div class="wide-tile">
+          <div class="tile-label">📊 Subject Performance</div>
+          <div id="dash-subject-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MCQ UPLOAD -->
+    <div class="deck-panel" id="panel-mcq">
+      <div class="stack-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🎯</div>
+          <div><div class="stack-title">1 மார்க்</div><div class="stack-sub">MCQ Questions</div></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">வகுப்பு · பாடம் · Term</div>
+        <div class="fc-body">
+          <div class="fl2">
+            <div class="fg"><label class="flbl">வகுப்பு</label><select class="fsel" id="mcq-class"></select></div>
+            <div class="fg"><label class="flbl">பாடம்</label><select class="fsel" id="mcq-subject" onchange="loadMcqTopics()"></select></div>
+          </div>
+          <label class="flbl" style="margin-top:12px;">Term</label>
+          <div class="pill-row">
+            <button class="pill on" data-t="term1" onclick="selectMcqTerm('term1')">Term 1</button>
+            <button class="pill" data-t="term2" onclick="selectMcqTerm('term2')">Term 2</button>
+            <button class="pill" data-t="term3" onclick="selectMcqTerm('term3')">Term 3</button>
+          </div>
+          <input type="hidden" id="mcq-selected-term" value="term1">
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head"><span>📖 பாடத் தலைப்பு</span></div>
+        <div class="fc-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <div style="flex:1;position:relative;">
+              <input class="finp" id="mcq-new-topic" placeholder="புதிய தலைப்பு உள்ளிடவும்…" style="padding-left:38px;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">📝</span>
+            </div>
+            <button onclick="addMcqTopic()" style="width:44px;height:44px;border-radius:12px;background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:20px;box-shadow:0 3px 10px var(--ind-lt);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:5px;">+</button>
+          </div>
+          <div id="mcq-topics-list" style="display:flex;flex-wrap:wrap;gap:7px;min-height:10px;margin-bottom:14px;"></div>
+          <label class="flbl">தலைப்பு தேர்வு</label>
+          <select class="fsel" id="mcq-topic"></select>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">📤 Upload Method</div>
+        <div class="fc-body">
+          <div class="method-row">
+            <div class="mc on" id="mc-excel" onclick="switchMcqTab('excel')"><div class="mc-icon" style="font-size:2rem;">📊</div><div class="mc-name" style="font-weight:700;margin-top:6px;font-size:14px;">Excel</div><div class="mc-sub" style="font-size:11px;color:var(--text2);">Template</div></div>
+            <div class="mc" id="mc-ai" onclick="switchMcqTab('ai')"><div class="mc-icon" style="font-size:2rem;">🤖</div><div class="mc-name" style="font-weight:700;margin-top:6px;font-size:14px;">AI</div><div class="mc-sub" style="font-size:11px;color:var(--text2);">Auto-generate</div></div>
+            <div class="mc" id="mc-bulk" onclick="switchMcqTab('bulk')"><div class="mc-icon" style="font-size:2rem;">📋</div><div class="mc-name" style="font-weight:700;margin-top:6px;font-size:14px;">Bulk</div><div class="mc-sub" style="font-size:11px;color:var(--text2);">6 lines/Q</div></div>
+            <div class="mc" id="mc-single" onclick="switchMcqTab('single')"><div class="mc-icon" style="font-size:2rem;">✏️</div><div class="mc-name" style="font-weight:700;margin-top:6px;font-size:14px;">Single</div><div class="mc-sub" style="font-size:11px;color:var(--text2);">One by one</div></div>
+          </div>
+          
+          <div id="mcq-excel-panel">
+            <button onclick="downloadExcelTemplate()" style="padding:10px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;">↓ Template Download</button>
+            <div class="dropzone" onclick="document.getElementById('excel-file-input').click()">
+              <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);">Excel File select செய்க</div>
+              <div id="excel-file-name" style="font-size:12px;color:var(--ind);font-weight:700;margin-top:6px;"></div>
+            </div>
+            <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(this)">
+            <div id="excel-preview" style="margin-top:12px;display:none;">
+              <div id="excel-preview-count" style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--grn);"></div>
+              <div id="excel-preview-table" style="max-height:160px;overflow-y:auto;border-radius:var(--r3);border:1px solid var(--border);font-size:12px;"></div>
+              <button onclick="uploadExcelQuestions()" style="width:100%;margin-top:12px;padding:14px;border-radius:var(--r3);background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--ind-lt);">Upload Questions</button>
+            </div>
+            <div id="excel-status" class="smsg"></div>
+          </div>
+
+          <div id="mcq-ai-panel" class="hidden">
+            <div class="fl2" style="margin-bottom:12px;">
+              <div><label class="flbl">Count</label><select class="fsel" id="ai-q-count"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+              <div><label class="flbl">Language</label><select class="fsel" id="ai-language"><option value="tamil">தமிழ்</option><option value="english">English</option><option value="both">Both</option></select></div>
+            </div>
+            <label class="flbl">Topic Details</label>
+            <textarea class="ftxt" id="ai-topic-input" rows="3" placeholder="எ.கா: தமிழ் வேற்றுமை உருபுகள்…"></textarea>
+            <button id="ai-generate-btn" onclick="generateAIQuestions()" style="width:100%;margin-top:12px;padding:14px;border-radius:var(--r3);background:linear-gradient(135deg,var(--ind),#8b5cf6);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--ind-lt);">✦ AI Generate</button>
+            <div id="ai-status" class="smsg"></div>
+            <div id="ai-preview" style="margin-top:12px;display:none;">
+              <div id="ai-preview-count" style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--grn);"></div>
+              <div id="ai-questions-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r3);padding:8px;"></div>
+              <button onclick="uploadAIQuestions()" style="width:100%;margin-top:12px;padding:14px;border-radius:var(--r3);background:var(--grn);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--grn-lt);">Save Questions</button>
+            </div>
+          </div>
+
+          <div id="mcq-bulk-panel" class="hidden">
+            <div style="background:var(--blu-lt);border-radius:var(--r3);padding:12px;margin-bottom:12px;">
+              <div style="font-size:12px;font-weight:800;color:var(--blu);margin-bottom:6px;">6 lines per question:</div>
+              <pre style="font-size:12px;color:var(--text2);line-height:1.7;">கேள்வி&#10;Opt A · B · C · D&#10;சரியான விடை</pre>
+            </div>
+            <div style="position:relative;">
+              <textarea class="ftxt" id="simple-text" rows="10" placeholder="கேள்வி 1&#10;…" oninput="previewBulkCount()"></textarea>
+              <div id="bulk-count-badge" style="position:absolute;top:10px;right:12px;background:var(--ind);color:#fff;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;display:none;"></div>
+            </div>
+            <button onclick="uploadMcqQuestions()" style="width:100%;margin-top:12px;padding:14px;border-radius:var(--r3);background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--ind-lt);">Upload Bulk Qs</button>
+            <div id="mcq-status" class="smsg"></div>
+          </div>
+
+          <div id="mcq-single-panel" class="hidden">
+            <!-- IMAGE UPLOAD FOR MCQ -->
+            <div style="margin-bottom:12px; background:var(--bg); padding:10px; border-radius:12px; border:1px dashed var(--text3);">
+                <label class="flbl">படம் இணைக்க (Optional)</label>
+                <input type="file" id="single-image-input" accept="image/*" style="display:none" onchange="previewImage(this, 'single-image-preview', 'mcq')">
+                <button onclick="document.getElementById('single-image-input').click()" style="padding:10px;border-radius:10px;background:var(--white);color:var(--text);border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;width:100%;"><span style="font-size:16px;">🖼️</span> படத்தைத் தேர்ந்தெடுக்கவும்...</button>
+                <img id="single-image-preview" style="max-width:100%; max-height:150px; margin-top:10px; border-radius:10px; display:none; object-fit:contain;">
+            </div>
+          
+            <label class="flbl">கேள்வி</label>
+            <!-- 🌟 VOICE TYPING ADDED HERE 🌟 -->
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <input class="finp" id="single-question" placeholder="Question… \\( x^2 \\)" style="flex:1;">
+                <button class="mic-btn" onclick="startVoiceTyping('single-question')">🎤</button>
+            </div>
+            
+            <div class="fl2">
+              <input class="finp" id="single-opt1" placeholder="A" oninput="updateSingleAnswerSelect()">
+              <input class="finp" id="single-opt2" placeholder="B" oninput="updateSingleAnswerSelect()">
+              <input class="finp" id="single-opt3" placeholder="C" oninput="updateSingleAnswerSelect()">
+              <input class="finp" id="single-opt4" placeholder="D" oninput="updateSingleAnswerSelect()">
+            </div>
+            <select class="fsel" id="single-answer" style="margin-top:12px;"><option value="">✓ Correct Answer</option></select>
+            <button onclick="uploadSingleMcq()" style="width:100%;margin-top:12px;padding:14px;border-radius:var(--r3);background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--ind-lt);">+ Add Question</button>
+            <div id="single-mcq-status" class="smsg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESC UPLOAD -->
+    <div class="deck-panel" id="panel-desc">
+      <div class="stack-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#10b981,#34d399);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📝</div>
+          <div><div class="stack-title">2 &amp; 5 மார்க்</div><div class="stack-sub">Descriptive Questions</div></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">வகுப்பு · பாடம் · Term</div>
+        <div class="fc-body">
+          <div class="fl2">
+            <div><label class="flbl">வகுப்பு</label><select class="fsel" id="desc-class"></select></div>
+            <div><label class="flbl">பாடம்</label><select class="fsel" id="desc-subject" onchange="loadDescTopics()"></select></div>
+          </div>
+          <label class="flbl" style="margin-top:12px;">Term</label>
+          <div class="pill-row">
+            <button class="pill on" data-t="term1" onclick="selectDescTerm('term1')">Term 1</button>
+            <button class="pill" data-t="term2" onclick="selectDescTerm('term2')">Term 2</button>
+            <button class="pill" data-t="term3" onclick="selectDescTerm('term3')">Term 3</button>
+          </div>
+          <input type="hidden" id="desc-selected-term" value="term1">
+          <div class="sep"></div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <div style="flex:1;position:relative;">
+              <input class="finp" id="desc-new-topic" placeholder="புதிய தலைப்பு உள்ளிடவும்…" style="padding-left:38px;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">📝</span>
+            </div>
+            <button onclick="addDescTopic()" style="width:44px;height:44px;border-radius:12px;background:var(--grn);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:20px;box-shadow:0 3px 10px var(--grn-lt);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:5px;">+</button>
+          </div>
+          <div id="desc-topics-list" style="display:flex;flex-wrap:wrap;gap:7px;min-height:10px;margin-bottom:14px;"></div>
+          <label class="flbl">தலைப்பு தேர்வு</label>
+          <select class="fsel" id="desc-topic"></select>
+          
+          <!-- IMAGE UPLOAD FOR DESC -->
+          <div style="margin-top:16px; margin-bottom:12px; background:var(--bg); padding:10px; border-radius:12px; border:1px dashed var(--text3);">
+              <label class="flbl">படம் இணைக்க (Optional)</label>
+              <input type="file" id="desc-image-input" accept="image/*" style="display:none" onchange="previewImage(this, 'desc-image-preview', 'desc')">
+              <button onclick="document.getElementById('desc-image-input').click()" style="padding:10px;border-radius:10px;background:var(--white);color:var(--text);border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;width:100%;"><span style="font-size:16px;">🖼️</span> படத்தைத் தேர்ந்தெடுக்கவும்...</button>
+              <img id="desc-image-preview" style="max-width:100%; max-height:150px; margin-top:10px; border-radius:10px; display:none; object-fit:contain;">
+          </div>
+          
+          <!-- 🌟 VOICE TYPING ADDED HERE 🌟 -->
+          <label class="flbl" style="margin-top:16px;">கேள்வி</label>
+          <div style="display:flex; gap:8px; align-items:flex-start;">
+              <textarea class="ftxt" id="desc-question" rows="3" placeholder="Question…" style="flex:1;"></textarea>
+              <button class="mic-btn" onclick="startVoiceTyping('desc-question')" style="height:44px;">🎤</button>
+          </div>
+          
+          <label class="flbl" style="margin-top:12px;">விடை</label>
+          <div style="display:flex; gap:8px; align-items:flex-start;">
+              <textarea class="ftxt" id="desc-answer" rows="3" placeholder="Answer…" style="flex:1;"></textarea>
+              <button class="mic-btn" onclick="startVoiceTyping('desc-answer')" style="height:44px;">🎤</button>
+          </div>
+
+          <button onclick="uploadDescQuestion()" style="width:100%;margin-top:16px;padding:14px;border-radius:var(--r3);background:var(--grn);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--grn-lt);">Upload Question</button>
+          <div id="desc-status" class="smsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE -->
+    <div class="deck-panel" id="panel-manage">
+      <div class="stack-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">✏️</div>
+          <div><div class="stack-title">நிர்வகி</div><div class="stack-sub" id="manage-card-count">Questions</div></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">Filters &amp; Search</div>
+        <div class="fc-body" style="padding:16px;">
+          <div class="fl2">
+            <select class="fsel" id="manage-class"></select>
+            <select class="fsel" id="manage-subject"></select>
+          </div>
+          <div class="pill-row" style="margin-top:10px;">
+            <button class="pill on" onclick="filterManageByTerm('all')">All</button>
+            <button class="pill" onclick="filterManageByTerm('term1')">T1</button>
+            <button class="pill" onclick="filterManageByTerm('term2')">T2</button>
+            <button class="pill" onclick="filterManageByTerm('term3')">T3</button>
+            <button class="pill on" onclick="filterManageByType('mcq')" style="margin-left:6px;">MCQ</button>
+            <button class="pill" onclick="filterManageByType('desc')">Desc</button>
+          </div>
+          <select class="fsel" id="manage-topic" onchange="loadManageQuestions()" style="margin-top:10px;"><option value="all">All Topics</option></select>
+          <input class="finp" id="manage-search" placeholder="Search questions…" style="margin-top:10px;" oninput="filterManageList()">
+        </div>
+      </div>
+      <div id="manage-questions-list"></div>
+      <div id="manage-no-data" style="display:none;" class="empty-card">
+        <div class="empty-icon" style="font-size:3rem;margin-bottom:10px;text-align:center;">📭</div>
+        <div class="empty-text" style="text-align:center;font-weight:700;color:var(--text2);">கேள்விகள் இல்லை</div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="deck-panel" id="panel-analytics">
+      <div class="stack-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#93c5fd);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📊</div>
+          <div><div class="stack-title">Analytics</div><div class="stack-sub">பகுப்பாய்வு</div></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">Select Filters</div>
+        <div class="fc-body">
+          <div class="fl2">
+            <select class="fsel" id="ana-class-filter"></select>
+            <select class="fsel" id="ana-subject-filter"></select>
+          </div>
+          <button onclick="loadAnalytics()" style="width:100%;margin-top:12px;padding:12px;border-radius:var(--r3);background:var(--blu);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;box-shadow:0 4px 12px var(--blu-lt);">Show Analytics</button>
+        </div>
+      </div>
+      <div class="ana-stat-row" id="ana-summary-cards"></div>
+      <div id="ana-score-dist" style="margin-bottom:16px;"></div>
+      <div id="ana-subject-bars" style="margin-bottom:16px;"></div>
+      <div id="ana-top-list"></div>
+      <div id="ana-loading" style="display:none;" class="loading"><div class="ldots"><span class="ldot"></span><span class="ldot"></span><span class="ldot"></span></div></div>
+      <div id="ana-empty" class="empty-card" style="text-align:center;padding:40px;"><div class="empty-icon" style="font-size:3rem;">📊</div><div class="empty-text" style="font-weight:700;margin-top:10px;">Filter → Show Analytics</div></div>
+    </div>
+
+    <!-- MARKS -->
+    <div class="deck-panel" id="panel-marks">
+      <div class="stack-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#ef4444,#fca5a5);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🏆</div>
+          <div><div class="stack-title">மார்க் List</div><div class="stack-sub">Student Scores</div></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="fc-head">Filter Records</div>
+        <div class="fc-body">
+          <div class="fl2">
+            <select class="fsel" id="score-class-filter" onchange="loadScores()"></select>
+            <select class="fsel" id="score-subject-filter" onchange="loadScores()"></select>
+          </div>
+          <input class="finp" id="score-search" placeholder="Search by student name…" style="margin-top:12px;" oninput="filterScoreList()">
+        </div>
+      </div>
+      <div id="scores-list" class="loading"><div class="ldots"><span class="ldot"></span><span class="ldot"></span><span class="ldot"></span></div></div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+      <button class="nav-item on" onclick="switchTab('dash')"><div class="nav-icon">⊞</div><span>Home</span></button>
+      <button class="nav-item" onclick="switchTab('mcq')"><div class="nav-icon">🎯</div><span>1 மார்க்</span></button>
+      <button class="nav-item" onclick="switchTab('desc')"><div class="nav-icon">📝</div><span>2/5 மார்க்</span></button>
+      <button class="nav-item" onclick="switchTab('manage')"><div class="nav-icon">✏️</div><span>நிர்வகி</span></button>
+      <button class="nav-item" onclick="switchTab('analytics')"><div class="nav-icon">📊</div><span>Analytics</span></button>
+      <button class="nav-item" onclick="switchTab('marks')"><div class="nav-icon">🏆</div><span>மார்க்</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="sheet-bg" id="settings-sheet" onclick="if(event.target===this)closeSheet('settings-sheet')">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title">⚙️ Settings</div>
+    <div class="sheet-close" onclick="closeSheet('settings-sheet')">✕</div>
+  </div>
+  <div class="sheet-body">
+    <div class="srow"><div class="srow-l"><div class="sico">🌙</div><div><div class="sname">Dark Mode</div><div class="ssub">இருண்ட பார்வை</div></div></div><label class="tog"><input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()"><span class="tog-sl"></span></label></div>
+    <div class="srow col"><div class="srow-l"><div class="sico">🔤</div><div><div class="sname">Font Size</div><div class="ssub">எழுத்து அளவு</div></div></div><div class="pill-row"><button class="pill on" id="font-btn-normal" onclick="setFontPref('normal')">Normal</button><button class="pill" id="font-btn-large" onclick="setFontPref('large')">Large</button></div></div>
+    <div class="srow col"><div class="srow-l"><div class="sico">🤖</div><div><div class="sname">AI API Key</div><div class="ssub">OpenRouter integration</div></div></div><div style="display:flex;gap:8px;"><input class="finp" type="password" id="openrouter-key-input" placeholder="sk-or-v1-…"><button onclick="saveOpenRouterKey()" style="padding:10px 16px;border-radius:var(--r3);background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;">Save</button></div><div id="api-key-status" style="font-size:12px;font-weight:700;display:none;margin-top:4px;"></div></div>
+    <div class="srow col" id="admin-danger-section" style="border:1.5px solid rgba(239,68,68,.3);background:var(--red-lt);display:none;"><div class="srow-l"><div class="sico" style="color:var(--red);">🗑</div><div><div class="sname" style="color:var(--red);">Admin Danger Zone</div><div class="ssub" style="color:var(--red);">அனைத்து தரவுகளையும் நீக்கு</div></div></div><button onclick="adminDeleteAllStudentScores()" style="width:100%;padding:12px;border-radius:var(--r3);background:var(--red);color:#fff;border:none;font-weight:800;cursor:pointer;">Delete All Student Marks</button></div>
+  </div>
+</div>
+</div>
+
+<!-- CERTIFICATE -->
+<div class="sheet-bg" id="cert-sheet" onclick="if(event.target===this)closeSheet('cert-sheet')">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title">🎓 Certificate</div>
+    <div class="sheet-close" onclick="closeSheet('cert-sheet')">✕</div>
+  </div>
+  <div class="sheet-body">
+    <div class="cert-inner" id="cert-box">
+      <div class="cert-ghead"><div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:1px;">சாதனை சான்றிதழ்</div></div>
+      <div id="cert-name" style="font-size:24px;font-weight:900;color:var(--text);margin-bottom:4px;text-align:center;"></div>
+      <div id="cert-class" style="font-size:14px;color:var(--text2);font-weight:700;margin-bottom:16px;text-align:center;"></div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--text3);font-weight:800;margin-bottom:4px;text-transform:uppercase;">SUBJECT</div><div id="cert-subject" style="font-size:18px;font-weight:900;color:var(--ind);"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div style="background:var(--blu-lt);border-radius:14px;padding:14px;text-align:center;"><div style="font-size:11px;color:var(--blu);font-weight:800;margin-bottom:4px;">SCORE</div><div id="cert-score" style="font-size:22px;font-weight:900;color:var(--blu);"></div></div>
+        <div style="background:var(--org-lt);border-radius:14px;padding:14px;text-align:center;"><div style="font-size:11px;color:var(--org);font-weight:800;margin-bottom:4px;">PERCENT</div><div id="cert-pct" style="font-size:22px;font-weight:900;color:var(--org);"></div></div>
+      </div>
+      <div id="cert-grade-box" style="padding:14px;border-radius:14px;margin-bottom:16px;text-align:center;"></div>
+      <div style="text-align:center;"><div style="font-size:11px;color:var(--text3);font-weight:700;">DATE</div><div id="cert-date" style="font-size:13px;font-weight:800;color:var(--text2);margin-top:2px;"></div></div>
+    </div>
+    <button onclick="printCertificate()" style="width:100%;margin-top:16px;padding:16px;border-radius:var(--r3);background:var(--ind);color:#fff;border:none;font-weight:800;cursor:pointer;font-size:15px;box-shadow:0 6px 20px var(--ind-lt);">🖨 Print Certificate</button>
+  </div>
+</div>
+</div>
+
+<!-- POPUP -->
+<div id="popup-overlay" style="display:none;">
+  <div id="popup-box">
+    <div id="popup-icon" style="font-size:3rem;margin-bottom:12px;"></div>
+    <div id="popup-title" style="font-size:18px;font-weight:900;margin-bottom:8px;color:var(--text);"></div>
+    <div id="popup-msg" style="font-size:14px;font-weight:600;color:var(--text2);line-height:1.5;margin-bottom:20px;"></div>
+    <div class="pbrow" id="popup-btns" style="display:flex;gap:12px;"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
+
+
