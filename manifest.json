@@ -1,25 +1,66 @@
 {
+  "id": "/ungal-asiriyar-v9",
   "name": "உங்கள் ஆசிரியர் · Premium Portal",
   "short_name": "ஆசிரியர்",
-  "description": "Teacher and Admin Management Portal",
+  "description": "Teacher and Admin Management Portal with AI, Excel upload, and Advanced Analytics.",
   "start_url": "./index.html",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#f2f4f8",
   "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "ta",
+  "categories": ["education", "productivity", "utilities"],
   "icons": [
     {
       "src": "20260315_085358.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "20260315_085358.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "20260315_085358.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "20260315_085358.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "1 மார்க் சேர்",
+      "short_name": "1 மார்க்",
+      "description": "புதிய 1 மார்க் கேள்விகளைச் சேர்க்க",
+      "url": "./index.html?tab=mcq",
+      "icons": [{ "src": "20260315_085358.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "பகுப்பாய்வு",
+      "short_name": "Analytics",
+      "description": "மாணவர்களின் மதிப்பெண் பகுப்பாய்வு",
+      "url": "./index.html?tab=analytics",
+      "icons": [{ "src": "20260315_085358.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "மதிப்பெண்கள்",
+      "short_name": "Marks List",
+      "description": "மாணவர்களின் மதிப்பெண்களைப் பார்க்க",
+      "url": "./index.html?tab=marks",
+      "icons": [{ "src": "20260315_085358.png", "sizes": "192x192" }]
     }
   ]
 }
+
 
