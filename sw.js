@@ -1,62 +1,69 @@
-// உங்கள் ஆசிரியர் — Service Worker v4.1
-const CACHE = 'ua-v4.1';
-const OFFLINE = './offline.html';
+```javascript
+// PWA Cache பெயர் (வெர்ஷனை மாற்றும் போது இதையும் மாற்ற வேண்டும்)
+const CACHE_NAME = 'ungal-asiriyar-v9';
 
-const CORE = [
+// ஆஃப்லைனில் வேலை செய்ய Cache செய்ய வேண்டிய ஃபைல்கள்
+const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './style.css',
   './app.js',
   './manifest.json',
-  './offline.html',
-  './20260315_085358.png'
+  './20260315_085358.png' // உங்கள் ஆப் ஐகான்
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(CORE).catch(() => {}))
-      .then(() => self.skipWaiting())
+// 1. Install Event (ஃபைல்களை டவுன்லோட் செய்து Cache-ல் சேமிக்க)
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Service Worker: Caching Files');
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+// 2. Activate Event (பழைய Cache-களை அழிக்க)
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Service Worker: Clearing Old Cache');
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
   );
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET') return;
-  // Never cache Firebase / API
-  if (
-    url.hostname.includes('googleapis.com') ||
-    url.hostname.includes('firebase') ||
-    url.hostname.includes('openrouter.ai') ||
-    url.hostname.includes('anthropic.com') ||
-    url.hostname.includes('gstatic.com') && url.pathname.includes('firebase')
-  ) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', {status:503})));
+// 3. Fetch Event (நெட்வொர்க் இல்லாத போது Cache-ல் இருந்து எடுக்க)
+self.addEventListener('fetch', (event) => {
+  // ஃபயர்பேஸ் போன்ற வெளி API அழைப்புகளை Cache செய்யாமல் தவிர்க்க
+  if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
-  // Network first, cache fallback
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      })
-      .catch(() =>
-        caches.match(e.request).then(cached => {
-          if (cached) return cached;
-          if (e.request.mode === 'navigate') return caches.match(OFFLINE);
-          return new Response('Offline', { status: 503 });
-        })
-      )
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      // Cache-ல் ஃபைல் இருந்தால் அதைக் கொடு, இல்லையென்றால் இன்டர்நெட்டில் இருந்து எடு
+      return cachedResponse || fetch(event.request).then((response) => {
+        // புதிய ஃபைல்களை Cache-ல் அப்டேட் செய்
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      });
+    }).catch(() => {
+      // இன்டர்நெட்டும் இல்லை, Cache-லும் இல்லை என்றால் Index.html ஐ காட்டு
+      if (event.request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
+    })
   );
 });
+
+```
